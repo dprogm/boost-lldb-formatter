@@ -43,7 +43,7 @@ class BoostSmallVectorSynthProvider:
     value_type: lldb.SBType = this_type.GetTemplateArgumentType(0)
 
     return (self.valobj.GetChildMemberWithName('m_holder').GetChildMemberWithName('m_start')
-      .CreateChildAtOffset(f"[{index}]", index*value_type.GetByteSize(), value_type))
+      .CreateChildAtOffset(f'[{index}]', index*value_type.GetByteSize(), value_type))
 
   def update(self):
     pass
@@ -67,7 +67,27 @@ class BoostVariantSyntheticChildrenProvider:
       return self.valobj.CreateValueFromExpression('val', '(const char*)"uninitialized"')
     valueType: lldb.SBType = this_type.GetTemplateArgumentType(type_idx)
     value: lldb.SBValue = self.valobj.GetChildMemberWithName('storage_').Cast(valueType)
-    return self.valobj.CreateValueFromData("val", value.GetData(), valueType)
+    return self.valobj.CreateValueFromData('val', value.GetData(), valueType)
+
+  def update(self):
+    pass
+
+class BoostMultiIndexContainerSyntheticChildrenProvider:
+
+  def __init__(self, valobj: lldb.SBValue, internal_dict):
+    self.valobj = valobj
+
+  def num_children(self):
+    return self.valobj.GetChildMemberWithName('node_count').GetValueAsUnsigned()
+  def has_children(self):
+    return True
+  def get_child_index(self, name):
+    return None
+
+  def get_child_at_index(self, index):
+    this_type = stripped_type(self.valobj.GetType())
+    value_type: lldb.SBType = this_type.GetTemplateArgumentType(0)
+    return self.valobj.CreateValueFromExpression('val', '(const char*)"dummy"')
 
   def update(self):
     pass
@@ -76,3 +96,4 @@ def __lldb_init_module(debugger, internal_dict):
   debugger.HandleCommand('type synthetic add -l data_formatters.BoostOptionalSynthProvider -x "^boost::optional<.+>$"')
   debugger.HandleCommand('type synthetic add -l data_formatters.BoostSmallVectorSynthProvider -x "^boost::container::small_vector<.+>$"')
   debugger.HandleCommand('type synthetic add -l data_formatters.BoostVariantSyntheticChildrenProvider -x "^boost::variant<.+>$"')
+  debugger.HandleCommand('type synthetic add -l data_formatters.BoostMultiIndexContainerSyntheticChildrenProvider -x "^boost::multi_index::multi_index_container<.+>$"')
